@@ -1,18 +1,68 @@
-Project Brief: Offline Clinical Note Taker (Pixel 9a Optimized)1. Project OverviewGoal: Build a local-first Android application for a Google Pixel 9a that records patient consultations, transcribes the audio offline using NVIDIA Parakeet (via sherpa-onnx), and reformats the text using an on-device Small Language Model (SLM) like Gemma 2 or Llama 3.2.Core Philosophy:100% Offline: No data leaves the device. Privacy is paramount.Hardware Optimized: Leverage the Pixel 9a Tensor G4 chip (NPU) where possible.Simple Workflow: Record $\rightarrow$ Save Audio $\rightarrow$ Transcribe $\rightarrow$ Format. (No complex real-time streaming required).2. Technical Stack (Strict Constraints)The AI Agent must use the following libraries to ensure compatibility:Language: Kotlin (Modern Android Development).UI Framework: Jetpack Compose (Material 3).Architecture: MVVM (Model-View-ViewModel).Speech-to-Text (STT): sherpa-onnx (Implementation of NVIDIA Parakeet).LLM Engine: Google MediaPipe GenAI (Preferred for Pixel) OR llama.cpp (Fallback).Database: Room (SQLite) to store the "Raw Transcript" and "Cleaned Note" pairs.Audio: Standard Android MediaRecorder (saving as .m4a or .wav).3. Implementation Steps for AI AgentUse these prompts sequentially to generate the application code.Phase 1: Project Setup & PermissionsPrompt to AI:"Initialize a new Android project.Configure build.gradle to include dependencies for: androidx.room, sherpa-onnx, androidx.lifecycle, and jetpack compose.Update AndroidManifest.xml to request permissions: RECORD_AUDIO, WRITE_EXTERNAL_STORAGE (or scoped storage equivalent), and INTERNET (only for downloading models initially, though app runs offline).Create a basic folder structure: data/, ui/, viewmodel/, workers/."Phase 2: The Recorder EnginePrompt to AI:"Create a class AudioRecorderManager.It should have functions: startRecording(filename: String) and stopRecording().Use Android MediaRecorder.Output format: MPEG_4 with AAC encoder (high quality, efficient size).Save files to the app's internal private storage directory."Phase 3: The Transcription Engine (Sherpa-ONNX)Prompt to AI:"Create a TranscriptionService class.Initialize SherpaOnnx with an OfflineRecognizer.Load the Parakeet model (model.onnx) and tokens (tokens.txt) from the Android assets folder.Create a function transcribeAudioFile(filePath: String): String that reads the recorded file and returns the full raw text string.Ensure this runs on a background thread (Coroutines Dispatchers.IO)."Phase 4: The Formatting Engine (LLM)Prompt to AI:"Create an LlmManager class using the MediaPipe LLM Inference engine.Initialize the model from a local binary file (e.g., gemma-2b-it-gpu-int4.bin).Create a function formatNote(rawText: String): Flow<String>.Crucial: Prepend the user's input with this System Prompt:'You are a clinical scribe. I will provide a rough transcript of a consultation. Your job is to correct typos, fix grammar, and format it into a clear, professional note. Do not summarize or remove details. Output ONLY the cleaned text.' "Phase 5: The UI (Jetpack Compose)Prompt to AI:"Create a main screen ConsultationScreen.kt.State 1 (Idle): A huge, centered 'START RECORDING' button (Red).State 2 (Recording): A 'STOP' button and a timer counting up.State 3 (Processing): Show a loading spinner with text 'Transcribing...' then 'Refining...'.State 4 (Result): Display two tabs: 'Final Note' (Editable text field) and 'Raw Transcript' (Read-only)."4. Required Model Files (Manual Download)The AI cannot download these for you. You (the human) must download them and place them in the app/src/main/assets/ folder.1. Speech Model (Parakeet via Sherpa):Download: sherpa-onnx-parakeet-ctc-int8Files needed: model.int8.onnx, tokens.txt2. LLM Model (Gemma or Llama):Option A (Easiest for Pixel): Gemma 2B (MediaPipe format).Download from Kaggle Models or convert standard Gemma using MediaPipe converter.Option B (Most Flexible): Llama-3.2-3B (GGUF format for llama.cpp).Download: Llama-3.2-3B-Instruct-Q4_K_M.gguf from HuggingFace.5. Directory Structure ReferenceEnsure the AI generates the code into this structure:Plaintextapp/
-├── src/
-│   ├── main/
-│   │   ├── assets/              <-- PUT YOUR AI MODELS HERE
-│   │   │   ├── parakeet-model.onnx
-│   │   │   ├── gemma-2b.bin
-│   │   ├── java/com/example/pixelscribe/
-│   │   │   ├── data/
-│   │   │   │   ├── NoteDatabase.kt
-│   │   │   │   ├── NoteEntity.kt
-│   │   │   ├── domain/
-│   │   │   │   ├── AudioRecorder.kt
-│   │   │   │   ├── Transcriber.kt (Sherpa)
-│   │   │   │   ├── LlmEngine.kt (MediaPipe)
-│   │   │   ├── ui/
-│   │   │   │   ├── ConsultationScreen.kt
-│   │   │   │   ├── Theme.kt
-6. How to Run (Instructions for User)Clone/Generate: Let the AI build the file structure based on this README.Download Models: Manually download the .onnx and .bin files listed in Section 4 and drag them into app/src/main/assets/.Sync Gradle: Open Android Studio, click "Sync Project with Gradle Files".Connect Device: Plug in Pixel 9a.Run: Click the green Play button.7. Troubleshooting Notes for AIMemory Warning: The Pixel 9a has ~8GB RAM. Ensure the LLM is unloaded from memory (llmHelper.close()) immediately after generating the note to prevent OS kills.JNI Libraries: If using sherpa-onnx, ensure the jniLibs are correctly referenced in build.gradle so the C++ code runs on ARM64.
+# PixelScribe (Offline Clinical Note Taker)
+
+PixelScribe is a local‑first Android app for recording patient consultations, transcribing them fully offline with sherpa‑onnx (NVIDIA Parakeet zipformer), and formatting the transcript with an on‑device LLM via MediaPipe LLM Inference. It is designed around privacy (no data leaves the device) and a simple workflow: record → transcribe → refine → review.
+
+## What this repo contains
+- Kotlin + Jetpack Compose app using MVVM.
+- Offline speech‑to‑text using sherpa‑onnx transducer models.
+- Offline LLM formatting using MediaPipe GenAI (LlmInference).
+- Room database for storing consultation history.
+- A simple UI with recording, processing, and result states.
+
+## Key workflows
+1. **Record**: Audio captured with `MediaRecorder` (AAC in `.m4a`, 16 kHz).
+2. **Transcribe**: Audio decoded to PCM and passed to sherpa‑onnx offline recognizer.
+3. **Refine**: Raw transcript is formatted using an on‑device LLM with a configurable system prompt.
+4. **Review**: The UI shows the final note and raw transcript; history is stored locally.
+
+## Requirements
+- Android Studio + Android SDK
+- A physical device with enough RAM (tested with Pixel‑class hardware)
+- Offline model files placed on device storage (see below)
+
+## Model files (not in git)
+Large model binaries are intentionally excluded from the repo. Place them on the device at:
+
+`/sdcard/Download/`
+
+Required files:
+- **Sherpa‑onnx (zipformer transducer)**
+  - `encoder.int8.onnx`
+  - `decoder.int8.onnx`
+  - `joiner.int8.onnx`
+  - `tokens.txt`
+- **LLM (MediaPipe .task)**
+  - `gemma-3n-E4B-it-int4.task`
+
+Note: The app currently reads models directly from `/sdcard/Download/` (see `ModelAssets.kt`, `TranscriptionService.kt`, and `LlmManager.kt`).
+
+## Permissions
+The app requests:
+- `RECORD_AUDIO`
+- `READ_EXTERNAL_STORAGE` / `WRITE_EXTERNAL_STORAGE` (pre‑Android 11)
+- Manage External Storage access on Android 11+ (to read `/sdcard/Download`)
+
+## Project structure
+```
+app/src/main/java/com/example/ambientpixel/
+  data/        Room entities + DAO + repository
+  domain/      AudioRecorderManager, TranscriptionService, LlmManager, ModelAssets
+  ui/          Compose screens + theme
+  viewmodel/   ConsultationViewModel + state
+```
+
+## Run
+1. Open the project in Android Studio.
+2. Sync Gradle.
+3. Place the required model files on the device at `/sdcard/Download/`.
+4. Connect your device and run the app.
+
+## Notes
+- This project is fully offline at runtime. Any model downloads/conversions are manual.
+- The LLM is closed after each generation to reduce memory pressure.
+
+## Repo status
+- `.gitignore` excludes build outputs, local IDE files, and large model binaries.
+
+---
+If you want changes to the model paths, naming, or on‑device storage strategy, open an issue or adjust `ModelAssets.kt`, `TranscriptionService.kt`, and `LlmManager.kt`.
