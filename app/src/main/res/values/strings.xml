@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">PixelScribe</string>
+    <string name="about_title">About PixelScribe</string>
+    <string name="about_description">PixelScribe is an on-device AI clinical scribe application designed for privacy and efficiency. It uses Google\'s Gemma model to transcribe and format medical consultations into SOAP notes without sending data to the cloud.</string>
+    <string name="version_label">Version 1.0</string>
+    <string name="copyright">© 2024 AmbientPixel</string>
+</resources>
