@@ -11,6 +11,7 @@ import com.example.ambientpixel.data.NoteEntity
 import com.example.ambientpixel.data.NoteRepository
 import com.example.ambientpixel.domain.AudioRecorderManager
 import com.example.ambientpixel.domain.LlmManager
+import com.example.ambientpixel.domain.ModelType
 import com.example.ambientpixel.domain.ModelAssets
 import com.example.ambientpixel.domain.TranscriptionService
 import kotlinx.coroutines.Dispatchers
@@ -40,7 +41,7 @@ class ConsultationViewModel(
         private set
 
     init {
-        val missing = ModelAssets.missingAssets(appContext)
+        val missing = ModelAssets.missingAssetsFor(uiState.modelType)
         if (missing.isNotEmpty()) {
             uiState = uiState.copy(
                 lastError = "Missing model files: ${missing.joinToString(", ")}."
@@ -97,6 +98,7 @@ class ConsultationViewModel(
 
                 // Pass the current prompt from UI state to LLM manager before generation
                 llmManager.updateSystemPrompt(uiState.systemPrompt)
+                llmManager.setModel(uiState.modelType)
 
                 Log.d("PixelScribe", "Starting LLM refinement")
                 val cleaned = try {
@@ -183,6 +185,25 @@ class ConsultationViewModel(
         uiState = uiState.copy(systemPrompt = text)
     }
 
+    fun updateModelType(modelType: ModelType) {
+        llmManager.setModel(modelType)
+        val missing = ModelAssets.missingAssetsFor(modelType)
+        val existingError = uiState.lastError
+        val missingMessage = if (missing.isNotEmpty()) {
+            "Missing model files: ${missing.joinToString(", ")}."
+        } else {
+            null
+        }
+
+        val nextError = when {
+            missingMessage != null -> missingMessage
+            existingError?.startsWith("Missing model files:") == true -> null
+            else -> existingError
+        }
+
+        uiState = uiState.copy(modelType = modelType, lastError = nextError)
+    }
+
     fun reset() {
         // Keep the system prompt, but reset other session data
         uiState = uiState.copy(
@@ -236,6 +257,7 @@ data class ConsultationUiState(
     val cleanedNote: String = "",
     val processingMessage: String = "",
     val lastError: String? = null,
+    val modelType: ModelType = ModelType.GEMMA_4B,
     val systemPrompt: String = """You are a clinical documentation assistant.
 
 TASK:

@@ -30,6 +30,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
@@ -53,6 +54,7 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import com.example.ambientpixel.R
 import com.example.ambientpixel.data.NoteEntity
+import com.example.ambientpixel.domain.ModelType
 import com.example.ambientpixel.viewmodel.ConsultationViewModel
 import com.example.ambientpixel.viewmodel.Screen
 import java.text.SimpleDateFormat
@@ -90,6 +92,35 @@ fun ConsultationScreen(viewModel: ConsultationViewModel) {
                             .height(200.dp),
                         placeholder = { Text("Enter system prompt...") }
                     )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text("LLM Model:", style = MaterialTheme.typography.labelLarge)
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { viewModel.updateModelType(ModelType.GEMMA_4B) }
+                    ) {
+                        RadioButton(
+                            selected = uiState.modelType == ModelType.GEMMA_4B,
+                            onClick = { viewModel.updateModelType(ModelType.GEMMA_4B) }
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Gemma 4‑bit (int4)")
+                    }
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { viewModel.updateModelType(ModelType.GEMMA_2B) }
+                    ) {
+                        RadioButton(
+                            selected = uiState.modelType == ModelType.GEMMA_2B,
+                            onClick = { viewModel.updateModelType(ModelType.GEMMA_2B) }
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Gemma 2‑bit (int2)")
+                    }
                     Spacer(modifier = Modifier.height(16.dp))
                     Text("About", style = MaterialTheme.typography.labelLarge)
                     Spacer(modifier = Modifier.height(8.dp))

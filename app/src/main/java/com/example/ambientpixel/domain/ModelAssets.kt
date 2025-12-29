@@ -7,26 +7,36 @@ object ModelAssets {
     // We now look for files in /sdcard/Download/ rather than assets for the large models.
     private val downloadsPath = "/sdcard/Download/"
     
-    // Map of Friendly Name -> Filename
-    private val requiredFiles = mapOf(
-        "Transcription Encoder" to "encoder.int8.onnx",
-        "Transcription Decoder" to "decoder.int8.onnx",
-        "Transcription Joiner" to "joiner.int8.onnx",
-        "Transcription Tokens" to "tokens.txt",
-        "LLM Model" to "gemma-3n-E4B-it-int4.task"
+    private val transcriptionFiles = listOf(
+        "encoder.int8.onnx",
+        "decoder.int8.onnx",
+        "joiner.int8.onnx",
+        "tokens.txt"
     )
 
-    fun missingAssets(context: Context): List<String> {
-        // We check the Download folder directly
+    private val llmFiles = mapOf(
+        ModelType.GEMMA_4B to "gemma-3n-E2B-it-int4.task",
+        ModelType.GEMMA_2B to "gemma-3n-E2B-it-int2.task"
+    )
+
+    fun missingAssetsFor(modelType: ModelType): List<String> {
         val missing = mutableListOf<String>()
-        
-        requiredFiles.forEach { (name, filename) ->
+
+        transcriptionFiles.forEach { filename ->
             val file = File(downloadsPath, filename)
             if (!file.exists()) {
                 missing.add(filename)
             }
         }
-        
+
+        val llmFile = llmFiles[modelType]
+        if (llmFile != null) {
+            val file = File(downloadsPath, llmFile)
+            if (!file.exists()) {
+                missing.add(llmFile)
+            }
+        }
+
         return missing
     }
 }
